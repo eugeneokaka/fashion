@@ -44,6 +44,8 @@ model User {
   products               Product[]   @relation("UserProducts")
   orders                 Order[]     @relation("UserOrders")
   cart                   Cart?
+  comments               Comment[]   @relation("UserComments")
+  ratings                Rating[]    @relation("UserRatings")
 }
 
 // ==========================
@@ -54,11 +56,11 @@ model Product {
   name         String
   description  String?
   price        Float
-  category     String?        // e.g. "Men", "Women", "Kids", "Accessories"
+  category     String?
   brand        String?
   color        String?
-  size         String?        // e.g. "S", "M", "L", "XL", "38", "40"
-  material     String?        // e.g. "Cotton", "Leather", "Polyester"
+  size         String?
+  material     String?
   stock        Int            @default(0)
   createdAt    DateTime       @default(now())
 
@@ -68,6 +70,42 @@ model Product {
   orderItems   OrderItem[]
   images       ProductImage[] @relation("ProductImages")
   cartItems    CartItem[]
+  comments     Comment[]      @relation("ProductComments")
+  ratings      Rating[]       @relation("ProductRatings")
+}
+
+// ==========================
+// RATINGS
+// ==========================
+model Rating {
+  id         String    @id @default(cuid())
+
+  createdAt  DateTime  @default(now())
+  rating     Int?      // Optional rating (1-5)
+  numberOfRaters  Int       @default(0)
+  // Relations
+  user       User?     @relation("UserRatings", fields: [userId], references: [id], onDelete: Cascade)
+  userId     String?   // optional to allow existing rows
+  product    Product?  @relation("ProductRatings", fields: [productId], references: [id], onDelete: Cascade)
+  productId  String?   // optional to allow existing rows
+
+  @@unique([userId, productId]) // ensures one rating per user per product
+}
+
+// ==========================
+// COMMENTS
+// ==========================
+model Comment {
+  id         String    @id @default(cuid())
+  content    String
+
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  user       User?     @relation("UserComments", fields: [userId], references: [id], onDelete: SetNull)
+  userId     String?
+  product    Product?  @relation("ProductComments", fields: [productId], references: [id], onDelete: Cascade)
+  productId  String?
 }
 
 // ==========================

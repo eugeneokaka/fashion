@@ -28,32 +28,61 @@ interface Product {
     phone?: string;
     imageUrl?: string;
   };
+  comments?: Comment[];
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+  };
 }
 
 export default function ProductPage() {
   const { id } = useParams();
+  const { user } = useUser();
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
-  const { user } = useUser();
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [addingComment, setAddingComment] = useState(false);
 
+  // Fetch product
   useEffect(() => {
     if (!id) return;
-
     const fetchProduct = async () => {
       try {
         const res = await fetch(`/api/product/${id}`);
         const data = await res.json();
         setProduct(data);
       } catch (err) {
-        console.error("Error fetching product:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProduct();
+  }, [id]);
+
+  // Fetch comments
+  useEffect(() => {
+    if (!id) return;
+    const fetchComments = async () => {
+      try {
+        const res = await fetch(`/api/comments/${id}`);
+        const data = await res.json();
+        setComments(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchComments();
   }, [id]);
 
   const handleAddToCart = async () => {
@@ -61,11 +90,9 @@ export default function ProductPage() {
       toast.error("Please sign in to add to cart.");
       return;
     }
-
     if (!product || added) return;
 
     setAdding(true);
-
     try {
       const res = await fetch("/api/cart", {
         method: "POST",
@@ -76,14 +103,11 @@ export default function ProductPage() {
           quantity: 1,
         }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || "Failed to add to cart");
         return;
       }
-
       setAdded(true);
       toast.success("Item added to cart 🛒");
     } catch (err) {
@@ -91,6 +115,40 @@ export default function ProductPage() {
       toast.error("Something went wrong");
     } finally {
       setAdding(false);
+    }
+  };
+
+  // -------------------------------
+  // COMMENT API
+  // -------------------------------
+  const handleSubmitComment = async () => {
+    if (!user || !commentText.trim()) return;
+    setAddingComment(true);
+
+    try {
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product?.id,
+          userId: user.id,
+          content: commentText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to post comment");
+        return;
+      }
+
+      setComments((prev) => [data, ...prev]);
+      setCommentText("");
+      toast.success("Comment posted!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    } finally {
+      setAddingComment(false);
     }
   };
 
@@ -116,7 +174,7 @@ export default function ProductPage() {
     >
       <Card className="bg-white/80 backdrop-blur-md border border-indigo-100 rounded-2xl shadow-sm p-6">
         <CardContent className="grid md:grid-cols-2 gap-10 items-start">
-          {/* 🖼️ Product Image Section */}
+          {/* 🖼️ Product Images */}
           <div className="space-y-4">
             <div className="relative">
               {images.length > 0 ? (
@@ -150,7 +208,7 @@ export default function ProductPage() {
             )}
           </div>
 
-          {/* 💎 Product Info Section */}
+          {/* 💎 Product Info */}
           <div className="space-y-5">
             <h1 className="text-3xl font-semibold text-gray-800">
               {product.name}
@@ -162,37 +220,7 @@ export default function ProductPage() {
               {product.description || "No description available."}
             </p>
 
-            <div className="text-sm text-gray-500 space-y-1">
-              {product.brand && (
-                <p>
-                  <span className="font-medium">Brand:</span> {product.brand}
-                </p>
-              )}
-              {product.color && (
-                <p>
-                  <span className="font-medium">Color:</span> {product.color}
-                </p>
-              )}
-              {product.size && (
-                <p>
-                  <span className="font-medium">Size:</span> {product.size}
-                </p>
-              )}
-              {product.material && (
-                <p>
-                  <span className="font-medium">Material:</span>{" "}
-                  {product.material}
-                </p>
-              )}
-              {product.category && (
-                <p>
-                  <span className="font-medium">Category:</span>{" "}
-                  {product.category}
-                </p>
-              )}
-            </div>
-
-            {/* 🛒 Add to Cart */}
+            {/* Add to Cart */}
             <Button
               onClick={handleAddToCart}
               disabled={added || adding}
@@ -214,7 +242,7 @@ export default function ProductPage() {
               )}
             </Button>
 
-            {/* 👤 Seller Info */}
+            {/* Seller Info */}
             <div className="mt-8 border-t pt-5">
               <h3 className="text-lg font-semibold text-gray-700 mb-3">
                 Seller Information
@@ -244,6 +272,49 @@ export default function ProductPage() {
                     )}
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Comments Section */}
+            <div className="mt-10">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Comments
+              </h3>
+
+              {user ? (
+                <div className="mb-6">
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-3 mb-2"
+                    placeholder="Write a comment..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                  />
+                  <Button
+                    onClick={handleSubmitComment}
+                    disabled={addingComment || !commentText.trim()}
+                  >
+                    {addingComment ? "Posting..." : "Post Comment"}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-gray-500">Sign in to leave a comment.</p>
+              )}
+
+              <div className="space-y-4">
+                {comments.length === 0 && (
+                  <p className="text-gray-500">No comments yet.</p>
+                )}
+                {comments.map((c) => (
+                  <Card key={c.id} className="bg-gray-50 border">
+                    <CardContent>
+                      <p className="text-gray-700">{c.content}</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {c.user?.firstName} {c.user?.lastName} •{" "}
+                        {new Date(c.createdAt).toLocaleString()}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
           </div>

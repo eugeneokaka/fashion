@@ -35,7 +35,16 @@ export default function CreateProductPage() {
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
-  ) => setForm({ ...form, [e.target.name]: e.target.value });
+  ) => {
+    const { name, value } = e.target;
+
+    // Reset size if category changes
+    if (name === "category") {
+      setForm({ ...form, category: value, size: "" });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
 
   const handleFileValidation = (files: FileList) => {
     for (let file of Array.from(files)) {
@@ -85,6 +94,7 @@ export default function CreateProductPage() {
   };
 
   const categories = ["Men", "Women", "Kids", "Accessories", "Shoes", "Other"];
+  const sizes = ["S", "M", "L", "XL"];
 
   return (
     <div className="max-w-2xl mx-auto py-10">
@@ -184,13 +194,35 @@ export default function CreateProductPage() {
             {/* Size */}
             <div className="space-y-1">
               <Label htmlFor="size">Size</Label>
-              <Input
-                id="size"
-                name="size"
-                value={form.size}
-                onChange={handleChange}
-                placeholder="e.g. M, L, 38"
-              />
+              {form.category === "Shoes" ? (
+                <Input
+                  id="size"
+                  name="size"
+                  type="text"
+                  min={30}
+                  max={50}
+                  value={form.size}
+                  onChange={handleChange}
+                  placeholder="e.g. 38"
+                  required
+                />
+              ) : (
+                <select
+                  id="size"
+                  name="size"
+                  value={form.size}
+                  onChange={handleChange}
+                  className="w-full border rounded-md bg-background p-2"
+                  required
+                >
+                  <option value="">Select Size</option>
+                  {sizes.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Material */}

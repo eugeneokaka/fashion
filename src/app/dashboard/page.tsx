@@ -143,7 +143,7 @@ export default function DashboardPage() {
               </Button>
             </Link>
           )}
-          <Link href="/products/new">
+          <Link href="/create">
             <Button className="bg-gradient-to-r from-blue-600 to-sky-600 text-white">
               + new product
             </Button>

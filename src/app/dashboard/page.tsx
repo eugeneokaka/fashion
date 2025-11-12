@@ -148,6 +148,11 @@ export default function DashboardPage() {
               + new product
             </Button>
           </Link>
+          <Link href="/sales">
+            <Button className="bg-gradient-to-r from-blue-600 to-sky-600 text-white">
+              sales
+            </Button>
+          </Link>
         </div>
       </div>
 
